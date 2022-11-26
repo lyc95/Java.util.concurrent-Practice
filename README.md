@@ -35,11 +35,13 @@ A multi-threaded program allocates a fixed amount of time to each individual thr
 ## 并发性(concurrency) vs 并行(parallelism)
 ### Concurrency
 ![Image from Geeks](images/concurrency.jpg)
+
 Concurrency relates to an application that is processing more than one task at the same time. Concurrency is creates the illusion of parallelism, however actually the chunks of a task aren’t parallelly processed, but inside the application, there are more than one task is being processed at a time. 
 **Concurrency is achieved through the interleaving operation of processes on the central processing unit(CPU) or in other words by the context switching**.
 
 ### Parallelism
 ![Image from Geeks](images/parallelism.jpg)
+
 **Parallelism is related to an application where tasks are divided into smaller sub-tasks that are processed seemingly simultaneously**. It is used to increase the throughput and computational speed of the system by using multiple processors. It enables single sequential CPUs to do lot of things “seemingly” simultaneously. **Parallelism leads to overlapping of central processing units and input-output tasks in one process with the central processing unit and input-output tasks of another process**. Whereas in concurrency the speed is increased by overlapping the input-output activities of one process with CPU process of another process.
 
 ### Monitor
@@ -382,3 +384,47 @@ new Thread(() -> {
 }, "t2").start();
 ```
 ![Recursive Lock](images/Recursive%20Lock.jpg)
+
+### Deadlock
+A deadlock is a situation in which two computer programs sharing the same resource are **effectively preventing each other from accessing the resource**, resulting in both programs ceasing to function.
+Below are the sample code for the deadlock.
+```java
+public class DeadlockDemo {
+    static Object a = new Object();
+    static Object b = new Object();
+    public static void main(String[] args) {
+        new Thread(() -> {
+            synchronized (a) {
+                System.out.println(Thread.currentThread().getName() + " acquired a, try to acquire b");
+                try {
+                    TimeUnit.SECONDS.sleep(1);
+                } catch (InterruptedException e) {
+                    throw new RuntimeException(e);
+                }
+                synchronized (b) {
+                    System.out.println(Thread.currentThread().getName() + " acquired b");
+                }
+            }
+        }, "A").start();
+
+        new Thread(() -> {
+            synchronized (b) {
+                System.out.println(Thread.currentThread().getName() + " acquired b, try to acquire a");
+                try {
+                    TimeUnit.SECONDS.sleep(1);
+                } catch (InterruptedException e) {
+                    throw new RuntimeException(e);
+                }
+                synchronized (a) {
+                    System.out.println(Thread.currentThread().getName() + " acquired a");
+                }
+            }
+        }, "B").start();
+    }
+}
+```
+To Verify the existence of deadlock
+1. type ```jcmd``` to get process id
+2. type ```jstack <pid>``` to get result.
+
+### Callable
