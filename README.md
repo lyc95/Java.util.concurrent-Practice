@@ -8,6 +8,11 @@ A process, in the simplest terms, is an executing program.
 ## Thead
 
 One or more threads run in the context of the process. A thread is the basic unit to which the operating system allocates processor time. A thread can execute any part of the process code, including parts currently being executed by another thread.
+4 Ways to create thread
+1. Thread
+2. Runnable
+3. Callable
+4. ThreadPool
 
 ## Lifecycle and States of a Thread in Java
 
@@ -428,3 +433,54 @@ To Verify the existence of deadlock
 2. type ```jstack <pid>``` to get result.
 
 ### Callable
+The Callable interface is similar to Runnable, in that both are designed for classes whose instances are potentially executed by another thread. 
+**A Callable do return a result and cannot throw a checked exception.**
+
+| Callable | Runable |
+| ------ | ----------- |
+| V call() | void run() |
+| return value or exeception | No Return value |
+```java
+class MyThread1 implements Runnable{
+
+    @Override
+    public void run() {
+
+    }
+}
+class MyThread2 implements Callable{
+
+    @Override
+    public Integer call() throws Exception {
+        return 200;
+    }
+}
+public static void main(String[] args) throws ExecutionException, InterruptedException {
+    new Thread(new MyThread1(), "A").start();
+    //Callable error not support
+    //new Thread(new MyThread2(), "B").start();
+
+    // Runnable Interface -> FutureTask class
+    // Constructor > FutureTask(Callable c)
+
+    FutureTask<Integer> futureTask1 = new FutureTask<>(new MyThread2());
+    //lambda
+    FutureTask<Integer> futureTask2 = new FutureTask<>(() -> {
+        System.out.println(Thread.currentThread().getName());
+        
+        return 1024;
+    });
+    new Thread(futureTask1, "B").start();
+    new Thread(futureTask2, "C").start();
+
+//        while (!futureTask1.isDone()) {
+//            System.out.println("wait...");
+//        }
+    System.out.println(futureTask1.get());
+    System.out.println(futureTask2.get());
+    //it will directly raeturn res as only get executed once.
+    System.out.println(futureTask2.get());
+    System.out.println("Main over");
+
+}
+```
