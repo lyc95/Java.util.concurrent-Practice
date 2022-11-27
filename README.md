@@ -484,3 +484,79 @@ public static void main(String[] args) throws ExecutionException, InterruptedExc
 
 }
 ```
+### CountDownLatch
+
+A CountDownLatch is initialized with a **given count(defined in constructor)**. 
+The **await()** methods block **until the current count reaches zero** due to invocations of the **countDown()** method, after which all waiting threads are released and any subsequent invocations of await return immediately. This is a one-shot phenomenon -- the count cannot be reset.
+```java
+//set initial value for the count
+CountDownLatch countDownLatch = new CountDownLatch(6);
+        for (int i = 0; i < 6; i++) {
+            new Thread(() -> {
+                System.out.println(Thread.currentThread().getName() + " left classroom");
+                //count - 1
+                countDownLatch.countDown();
+            }, String.valueOf(i)).start();
+        }
+        //wait until count deducted to 0
+        countDownLatch.await();
+        System.out.println(Thread.currentThread().getName() + " lock the classroom");
+```
+### CyclicBarrier
+
+The count ofCountDownLatch cannot be reset. If you need a version that **resets the count**, consider using a **CyclicBarrier**.
+A synchronization aid that allows a set of threads to all wait for each other to **reach a common barrier point**. CyclicBarriers are useful in programs involving a fixed sized party of threads that must occasionally wait for each other.
+```java
+public class DEMO {
+    public static final int NUMBER = 7;
+    public static void main(String[] args) {
+        CyclicBarrier cyclicBarrier = new CyclicBarrier(NUMBER, () -> {
+            System.out.println("finally got all 7 dragon balls");
+        });
+        //define the process of gathering balls
+        for (int i = 0; i < 7; i++) {
+            new Thread(() -> {
+                System.out.println(Thread.currentThread().getName() + " dragon ball collected");
+                try {
+                    //wait until nos of thread who invoked await() reached the barrier
+                    //cyclicBarrier += 1
+                    //it will call the runnable (2nd param) once it reaches the barrier
+                    cyclicBarrier.await();
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }, String.valueOf(i)).start();
+        }
+
+    }
+}
+```
+### Semaphore
+
+A counting semaphore. Conceptually, a semaphore **maintains a set of permits**. Each acquire() blocks if necessary until a permit is available, and then takes it. Each release() adds a permit, potentially releasing a blocking acquirer. 
+Semaphores are often used to **restrict the number of threads than can access some (physical or logical) resource**.
+```java
+//6 cars park 3 slots
+public class DEMO {
+    public static void main(String[] args) {
+        // 3 permits/slots
+        Semaphore semaphore = new Semaphore(3);
+        // 6 thread/cars
+        for (int i = 0; i < 6; i++) {
+            new Thread(() -> {
+                try {
+                    // get slot/permit, block until one is available
+                    semaphore.acquire();
+                    System.out.println(Thread.currentThread().getName() + " get the slot/permit");
+                    TimeUnit.SECONDS.sleep(new Random().nextInt(5));
+                    System.out.println(Thread.currentThread().getName() + " release the slot/permit");
+                } catch (InterruptedException e) {
+                    throw new RuntimeException(e);
+                } finally {
+                    semaphore.release();
+                }
+            }, String.valueOf(i+1)).start();
+        }
+    }
+}
+```
