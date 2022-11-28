@@ -527,7 +527,6 @@ public class DEMO {
                 }
             }, String.valueOf(i)).start();
         }
-
     }
 }
 ```
@@ -559,4 +558,78 @@ public class DEMO {
         }
     }
 }
+```
+
+### Pessimistic Lock vs Optimistic Lock
+
+**Optimistic Locking** is a strategy where you read a record, take note of a version number and check that the version hasn't changed before you write the record back.
+If the record is dirty (i.e. different version to yours) you abort the transaction and the user can re-start it.
+**Pessimistic Locking** is when you lock the record for your exclusive use until you have finished with it. It has much better integrity than optimistic locking but requires you to be careful with your application design to **avoid Deadlocks**. 
+
+
+### row lock and table lock
+Table-level locking systems always lock entire tables. Row-level locking systems can lock entire tables if the WHERE clause of a statement cannot use an index.
+
+### Read lock and Write lock
+
+Read lock is shared lock while write lock is exclusive. Both of them posssibly cause deadlock as shown below.
+![Recursive Lock](images/DeadlockReadAndWrite.jpeg)
+```java
+class MyCache {
+    private volatile Map<String, Object> map = new HashMap<>();
+    //Create ReadWrite Lock
+    private ReadWriteLock rwLock = new ReentrantReadWriteLock();
+    //put
+    public void put(String key, Object value) {
+        //lock Writelock (exclusive)
+        rwLock.writeLock().lock();
+        System.out.println(Thread.currentThread().getName()+ " is writing " + key);
+        try {
+            TimeUnit.MICROSECONDS.sleep(300);
+            map.put(key, value);
+            System.out.println(Thread.currentThread().getName()+ " finished writing " + key);
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        } finally {
+            //release write lock
+            rwLock.writeLock().unlock();
+        }
+    }
+    //get
+    public Object get(String key) {
+        //lock readlock (shared)
+        rwLock.readLock().lock();
+        Object res = null;
+        System.out.println(Thread.currentThread().getName()+ " is reading " + key);
+        try {
+            TimeUnit.MICROSECONDS.sleep(300);
+            res = map.get(key);
+            System.out.println(Thread.currentThread().getName()+ " finished reading " + key);
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        } finally {
+            //release read lock
+            rwLock.readLock().unlock();
+        }
+        return res;
+    }
+}
+public class ReadWriteLockDemo {
+    public static void main(String[] args) {
+        MyCache myCache = new MyCache();
+        for (int i = 0; i < 5; i++) {
+            final int num = i;
+            new Thread(() -> {
+                myCache.put(num + "", num + "");
+            }, String.valueOf(i+1)).start();
+        }
+        for (int i = 0; i < 5; i++) {
+            final int num = i;
+            new Thread(() -> {
+                myCache.get(num + "");
+            }, String.valueOf(i+1)).start();
+        }
+    }
+}
+
 ```
