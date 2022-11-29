@@ -715,3 +715,123 @@ public class BlockingQueueDemo {
     }
 }
 ```
+
+### ThreadPool
+
+#### 3 types of ThreadPool
+```java
+public static void main(String[] args) {
+    //1. Pool with 5 threads
+    ExecutorService threadPool = Executors.newFixedThreadPool(5);
+    //2. Pool with single thread
+    ExecutorService threadPool = Executors.newSingleThreadExecutor();
+    //3. Elastic thread
+    //It will determine how many threads needed
+    ExecutorService threadPool = Executors.newCachedThreadPool();
+    try{
+        for (int i = 0; i < 100; i++) {
+            threadPool.execute(() -> {
+                System.out.println(Thread.currentThread().getName() + " is processing");
+            });
+        }
+    } catch (Exception e) {
+        e.printStackTrace();
+    } finally {
+        threadPool.shutdown();
+    }
+}
+```
+
+#### 7 Parameters for Threadpool
+```java
+//We can create our own ThreadPoll by ThreadPoolExecutor
+public ThreadPoolExecutor(
+    int corePoolSize,//resident threads
+    int maximumPoolSize,
+    long keepAliveTime, // for the thread
+    TimeUnit unit,
+    BlockingQueue<Runnable> workQueue,
+    ThreadFactory threadFactory,
+    RejectedExecutionHandler handler//拒绝策略) {
+    ....
+}
+```
+![Recursive Lock](images/ThreadPoolProcedure.jpeg)
+![Recursive Lock](images/Policy.jpeg)
+
+### Fork/Join
+A divide and conquer approach.
+In practice, this means that the framework first **forks**, recursively breaking the task into smaller independent subtasks until they are simple enough to run asynchronously.
+After that, the **join** part begins. The results of all subtasks are recursively joined into a single result. In the case of a task that returns void, the program simply waits until every subtask runs.
+```java
+class MyTask extends RecursiveTask<Integer> {
+
+    //DIFF < 10
+    private static final Integer VALUE = 10;
+    private int start;
+    private int end;
+    private int result;
+
+    public MyTask(int start, int end) {
+        this.start = start;
+        this.end = end;
+    }
+
+    //divide and conquer
+    @Override
+    protected Integer compute() {
+        if (end - start <= VALUE) {
+            for (int i = start; i <= end; i++) {
+                result += i;
+            }
+        } else {
+            int mid = (start + end) /2;
+            MyTask subTask1 = new MyTask(start, mid);
+            MyTask subTask2 = new MyTask(mid+1, end);
+            //dividing the problem into sub tasks
+            subTask1.fork();
+            subTask2.fork();
+            // join the tasks
+            result = subTask1.join() + subTask2.join();
+        }
+        return result;
+    }
+}
+public class DEMO {
+    public static void main(String[] args) throws ExecutionException, InterruptedException {
+        MyTask task = new MyTask(1, 100);
+        //create poll and submit task
+        ForkJoinPool forkJoinPool = new ForkJoinPool();
+        ForkJoinTask<Integer> forkJoinTask = forkJoinPool.submit(task);
+        //get result
+        Integer res = forkJoinTask.get();
+        System.out.println(res);
+        forkJoinPool.shutdown();
+    }
+}
+```
+
+### Aync CompletableFuture
+
+```java
+public class demo {
+    public static void main(String[] args) throws ExecutionException, InterruptedException {
+        //async no return val
+        CompletableFuture<Void> completableFuture1 =CompletableFuture.runAsync(() -> {
+            System.out.println(Thread.currentThread().getName() + " completableFuture1");
+        });
+        completableFuture1.get();
+
+        //async with return val
+        CompletableFuture<Integer> completableFuture2 = CompletableFuture.supplyAsync(() -> {
+            System.out.println(Thread.currentThread().getName() + " completableFuture2");
+            return 1024;
+        });
+        completableFuture2.whenComplete((t,u) -> {
+            System.out.println("t: " + t); // return val if ok null if no return val
+            System.out.println("u: " + u); // contains exception details if any
+        }).get();
+    }
+}
+
+```
